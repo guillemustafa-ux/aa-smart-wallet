@@ -1,0 +1,15 @@
+# Foundry
+cache/
+out/
+broadcast/
+# lib/ NO se ignora: forge la maneja como submódulos de git
+
+# Node / frontend
+node_modules/
+dist/
+.vercel/
+
+# Secretos — NUNCA subir
+.env
+.env.*
+!.env.example

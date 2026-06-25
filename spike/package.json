@@ -1,0 +1,13 @@
+{
+  "name": "aa-spike",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "gasless": "node --env-file=../.env gasless.mjs",
+    "gasless:custom": "node --env-file=../.env gasless-custom.mjs"
+  },
+  "dependencies": {
+    "permissionless": "^0.2.0",
+    "viem": "^2.21.0"
+  }
+}

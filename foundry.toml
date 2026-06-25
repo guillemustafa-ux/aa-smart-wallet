@@ -1,0 +1,18 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc = "0.8.24"
+optimizer = true
+optimizer_runs = 200
+# EntryPoint v0.7 (account-abstraction) puede dar "stack too deep" sin via_ir.
+via_ir = true
+
+# RPC de cada red, leído de .env (.env NUNCA se sube). Uso: --rpc-url sepolia
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+
+# Verificación de contratos. Con Etherscan API V2 una sola key sirve para todas
+# las redes (se enruta por chainid).
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}", chain = 11155111 }
