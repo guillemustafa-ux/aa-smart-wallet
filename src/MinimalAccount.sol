@@ -78,10 +78,7 @@ contract MinimalAccount is BaseAccount {
     /// @param dest  contrato/destino a llamar.
     /// @param value ETH a enviar en la llamada.
     /// @param func  calldata de la llamada.
-    function execute(address dest, uint256 value, bytes calldata func)
-        external
-        requireFromEntryPointOrOwner
-    {
+    function execute(address dest, uint256 value, bytes calldata func) external requireFromEntryPointOrOwner {
         (bool ok, bytes memory result) = dest.call{value: value}(func);
         if (!ok) {
             revert MinimalAccount__CallFailed(result);

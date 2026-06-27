@@ -46,10 +46,7 @@ contract MinimalAccountTest is Test {
     }
 
     function _incrementCallData() internal view returns (bytes memory) {
-        return abi.encodeCall(
-            MinimalAccount.execute,
-            (address(counter), 0, abi.encodeCall(DemoCounter.increment, ()))
-        );
+        return abi.encodeCall(MinimalAccount.execute, (address(counter), 0, abi.encodeCall(DemoCounter.increment, ())));
     }
 
     function _buildUserOp(bytes memory callData) internal view returns (PackedUserOperation memory op) {
@@ -60,7 +57,7 @@ contract MinimalAccountTest is Test {
             callData: callData,
             accountGasLimits: _pack(uint128(300_000), uint128(300_000)), // verificación, ejecución
             preVerificationGas: 100_000,
-            gasFees: _pack(uint128(1 gwei), uint128(1 gwei)),            // maxPriority, maxFee
+            gasFees: _pack(uint128(1 gwei), uint128(1 gwei)), // maxPriority, maxFee
             paymasterAndData: hex"",
             signature: hex""
         });

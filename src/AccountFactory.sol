@@ -35,13 +35,9 @@ contract AccountFactory {
 
     /// @notice Calcula la dirección counterfactual de la cuenta de `owner` para `salt`.
     function getAddress(address owner, uint256 salt) public view returns (address) {
-        bytes memory bytecode = abi.encodePacked(
-            type(MinimalAccount).creationCode,
-            abi.encode(address(entryPoint), owner)
-        );
-        bytes32 hash = keccak256(
-            abi.encodePacked(bytes1(0xff), address(this), bytes32(salt), keccak256(bytecode))
-        );
+        bytes memory bytecode =
+            abi.encodePacked(type(MinimalAccount).creationCode, abi.encode(address(entryPoint), owner));
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), bytes32(salt), keccak256(bytecode)));
         return address(uint160(uint256(hash)));
     }
 }
