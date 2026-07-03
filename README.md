@@ -8,7 +8,7 @@ la cuenta tenga ETH** — el usuario solo firma y un **Paymaster** paga el gas.
 
 ## 🔗 En vivo
 
-- **dApp:** _(se completa al desplegar en Vercel)_
+- **dApp:** [aa-smart-wallet.vercel.app](https://aa-smart-wallet.vercel.app)
 - **Red:** Sepolia · **EntryPoint v0.7:** [`0x0000…da032`](https://sepolia.etherscan.io/address/0x0000000071727De22E5E9d8BAf0edAc6f37da032)
 
 ### Contratos desplegados y verificados (tilde verde en Etherscan)

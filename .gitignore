@@ -13,3 +13,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Orquestación interna (el repo es público) — NUNCA subir
+ARRANQUE-FABLE.md
