@@ -8,6 +8,14 @@ optimizer_runs = 200
 # EntryPoint v0.7 (account-abstraction) puede dar "stack too deep" sin via_ir.
 via_ir = true
 
+# depth=50 (en vez del default ~500) para que los invariant tests corran en
+# segundos en CI, no minutos, sin perder la esencia (256 secuencias random
+# de hasta 50 llamadas c/u sobre los mismos actores fijos).
+[invariant]
+runs = 256
+depth = 50
+fail_on_revert = true
+
 # RPC de cada red, leído de .env (.env NUNCA se sube). Uso: --rpc-url sepolia
 [rpc_endpoints]
 sepolia = "${SEPOLIA_RPC_URL}"

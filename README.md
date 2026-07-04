@@ -53,15 +53,26 @@ Usuario firma UserOp ──▶ Bundler ──▶ EntryPoint ──▶ tu cuenta.
 
 ## ✅ Tests (Foundry)
 
-8 tests, incluida una prueba de **integración real** que recorre `EntryPoint.handleOps`:
+16 tests — **100% de cobertura** (líneas/statements/branches/funciones) en los 3
+contratos — incluida una prueba de **integración real** que recorre `EntryPoint.handleOps`
+y un **invariant test** estateful:
 
 ```bash
-forge test -vv
+forge test -vv                          # 16 tests
+forge coverage --report summary         # 100% en MinimalAccount, AccountFactory, DemoCounter
+forge snapshot --no-match-contract Invariant   # regenerar .gas-snapshot tras un cambio
 ```
 
-Cubren: dirección determinística del factory, `validateUserOp` (firma válida → `0`, inválida → `1`),
-control de acceso de `execute`, fuzz de firmantes, y el ciclo completo UserOp → handleOps → cambio
+Cubren: dirección determinística del factory (unit + **fuzz** sobre `(owner, salt)` arbitrarios,
+con idempotencia), `validateUserOp` (firma válida → `0`, inválida → `1`, fuzz de firmantes),
+control de acceso de `execute`/`executeBatch` (incluida la falla de una llamada del lote),
+deposit/withdraw del prefund en el EntryPoint, y el ciclo completo UserOp → handleOps → cambio
 de estado del target.
+
+**Invariant test** — [`test/DemoCounterInvariant.t.sol`](test/DemoCounterInvariant.t.sol):
+tras cientos de secuencias aleatorias de `increment()` desde distintas cuentas, `total`
+siempre es exactamente la suma de `countOf(actor)` de todas ellas — la propiedad de
+contabilidad que un refactor futuro podría romper sin que ningún test unitario lo note.
 
 ## 🚀 Cómo correr
 
@@ -83,18 +94,36 @@ echo "VITE_PIMLICO_API_KEY=tu_key" > .env
 npm run dev
 ```
 
-## 🔒 Nota de seguridad
+## 🔒 Security considerations
 
-Este es un **demo de testnet**: la API key de Pimlico va embebida en el cliente (`VITE_*`).
-En producción el paymaster se proxea por un backend o se restringe con **sponsorship policies**
-de Pimlico (origen/contratos permitidos). Las claves privadas reales nunca van al repo (`.env`
-está en `.gitignore`); el deploy usa una wallet de prueba descartable.
+- **Autorización de dos vías.** `execute`/`executeBatch` solo aceptan llamadas del
+  `EntryPoint` (flujo UserOp normal) o del `owner` directamente (uso de emergencia
+  sin pasar por el bundler). Cualquier otro caller revierte con
+  `MinimalAccount__NotFromEntryPointOrOwner`.
+- **Validación de firma estricta.** `_validateSignature` reconstruye el hash EIP-191
+  del `userOpHash` y recupera el firmante con `ECDSA.recover` (OpenZeppelin, protegido
+  contra maleabilidad de firma) — solo el `owner` puede autorizar una UserOp.
+- **`owner` y `entryPoint` inmutables.** Fijados en el constructor, no hay
+  `setOwner`/`setEntryPoint` que un atacante pudiera secuestrar.
+- **`executeBatch` es atómico.** Si una llamada del lote falla, TODA la batch
+  revierte (no hay ejecución parcial que deje la cuenta en un estado intermedio).
+- **Base auditada.** Hereda `BaseAccount` de `eth-infinitism/account-abstraction`
+  (la implementación de referencia del EIP), no reimplementa la lógica de
+  validación de nonce/prefund del EntryPoint.
+
+**Known limitations (alcance honesto):** un solo `owner` — sin social recovery ni
+multisig (fuera de alcance para un demo; ver `aa-smart-wallet` como base sobre la
+que se podría añadir un guardian). Es un **demo de testnet**: la API key de Pimlico
+va embebida en el cliente (`VITE_*`). En producción el paymaster se proxea por un
+backend o se restringe con **sponsorship policies** de Pimlico (origen/contratos
+permitidos). Las claves privadas reales nunca van al repo (`.env` está en
+`.gitignore`); el deploy usa una wallet de prueba descartable.
 
 ## 📂 Estructura
 
 ```
 src/         MinimalAccount.sol · AccountFactory.sol · DemoCounter.sol
-test/        MinimalAccount.t.sol (8 tests)
+test/        MinimalAccount.t.sol (15) · DemoCounterInvariant.t.sol (1) — 16 tests, 100% coverage
 script/      Deploy.s.sol
 spike/       gasless.mjs (cuenta stock) · gasless-custom.mjs (cuenta propia)
 frontend/    dApp viem + permissionless (React/Vite/TS/Tailwind)

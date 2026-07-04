@@ -119,6 +119,77 @@ contract MinimalAccountTest is Test {
         account.execute(address(counter), 0, abi.encodeCall(DemoCounter.increment, ()));
     }
 
+    function test_Execute_RevertsOnFailedCall() public {
+        vm.prank(owner);
+        vm.expectRevert(); // DemoCounter no tiene funcion "doesNotExist"
+        account.execute(address(counter), 0, abi.encodeWithSignature("doesNotExist()"));
+    }
+
+    // ---- executeBatch ----
+
+    function test_ExecuteBatch_RunsAllCallsInOrder() public {
+        address[] memory dest = new address[](3);
+        uint256[] memory value = new uint256[](3);
+        bytes[] memory data = new bytes[](3);
+        for (uint256 i = 0; i < 3; i++) {
+            dest[i] = address(counter);
+            value[i] = 0;
+            data[i] = abi.encodeCall(DemoCounter.increment, ());
+        }
+
+        vm.prank(owner);
+        account.executeBatch(dest, value, data);
+
+        assertEq(counter.countOf(address(account)), 3);
+        assertEq(counter.total(), 3);
+    }
+
+    function test_ExecuteBatch_RevertsFromStranger() public {
+        address[] memory dest = new address[](1);
+        uint256[] memory value = new uint256[](1);
+        bytes[] memory data = new bytes[](1);
+        dest[0] = address(counter);
+        data[0] = abi.encodeCall(DemoCounter.increment, ());
+
+        vm.prank(makeAddr("stranger"));
+        vm.expectRevert(MinimalAccount.MinimalAccount__NotFromEntryPointOrOwner.selector);
+        account.executeBatch(dest, value, data);
+    }
+
+    function test_ExecuteBatch_RevertsIfOneCallFails() public {
+        address[] memory dest = new address[](2);
+        uint256[] memory value = new uint256[](2);
+        bytes[] memory data = new bytes[](2);
+        dest[0] = address(counter);
+        data[0] = abi.encodeCall(DemoCounter.increment, ());
+        dest[1] = address(counter);
+        data[1] = abi.encodeWithSignature("doesNotExist()"); // esta falla
+
+        vm.prank(owner);
+        vm.expectRevert(); // MinimalAccount__CallFailed
+        account.executeBatch(dest, value, data);
+    }
+
+    function test_ExecuteBatch_RevertsOnMismatchedArrayLengths() public {
+        address[] memory dest = new address[](2);
+        uint256[] memory value = new uint256[](1); // largo distinto a proposito
+        bytes[] memory data = new bytes[](2);
+
+        vm.prank(owner);
+        vm.expectRevert(MinimalAccount.MinimalAccount__WrongArrayLengths.selector);
+        account.executeBatch(dest, value, data);
+    }
+
+    // ---- deposit en el EntryPoint (prefund) ----
+
+    function test_AddDeposit_IncreasesEntryPointBalance() public {
+        vm.deal(address(this), 1 ether);
+        account.addDeposit{value: 0.5 ether}();
+
+        assertEq(account.getDeposit(), 0.5 ether);
+        assertEq(entryPoint.balanceOf(address(account)), 0.5 ether);
+    }
+
     /// @notice Integración end-to-end: el UserOp recorre EntryPoint.handleOps, el target
     ///         cambia de estado y el beneficiary (bundler) cobra el gas.
     function test_HandleOps_endToEnd_incrementsCounter() public {
@@ -147,5 +218,22 @@ contract MinimalAccountTest is Test {
 
         vm.prank(address(entryPoint));
         assertEq(account.validateUserOp(op, userOpHash, 0), 1);
+    }
+
+    /// @notice Fuzz: para CUALQUIER par (owner, salt), getAddress() predice
+    ///         exactamente la dirección donde createAccount() despliega, y
+    ///         llamarlo dos veces es idempotente (no redespliega, mismo owner).
+    function testFuzz_Factory_PredictedAddressMatchesDeployed(address anyOwner, uint256 salt) public {
+        vm.assume(anyOwner != address(0));
+
+        address predicted = factory.getAddress(anyOwner, salt);
+        MinimalAccount deployed = factory.createAccount(anyOwner, salt);
+
+        assertEq(address(deployed), predicted, "direccion desplegada != predicha");
+        assertEq(deployed.owner(), anyOwner);
+
+        // Idempotencia: llamarlo de nuevo no redespliega ni cambia nada.
+        MinimalAccount again = factory.createAccount(anyOwner, salt);
+        assertEq(address(again), predicted);
     }
 }

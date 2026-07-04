@@ -31,5 +31,14 @@ jobs:
       - name: Run Forge build
         run: forge build --sizes
 
-      - name: Run Forge tests
+      - name: Run Forge tests (unit + fuzz + invariant)
         run: forge test -vvv
+
+      - name: Check gas snapshot
+        # Los invariant tests no reportan un número de gas fijo (reportan
+        # runs/calls/reverts), así que quedan afuera del check de snapshot.
+        # --tolerance 5 absorbe la variación normal de los tests fuzz.
+        run: forge snapshot --check --no-match-contract Invariant --tolerance 5
+
+      - name: Check coverage
+        run: forge coverage --report summary
